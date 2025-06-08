@@ -34,8 +34,8 @@ uv pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
 ### Example Tools
 
 - `cidr_calculator.py`: Calculate CIDR notation, network/broadcast address, and IP range for a given IP and subnet mask.
-- `get_ip.py`: Fetch your public IP address using an online service.
-
+- `get_ip.py`: Fetch your public IP address using an online service.python get_pdf_meta.py -F your_file.pdf
+- `get_pdf_meta.py`: Extract metadata from a PDF file, such as title, author, and creation date.
 ### Usage
 
 Run any tool directly with Python, for example:
@@ -49,6 +49,13 @@ or
 ```bash
 python get_ip.py
 ```
+
+or
+
+```bash
+python get_pdf_meta.py -F your_file.pdf
+```
+
 
 ## Adding New Tools
 

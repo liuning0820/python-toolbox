@@ -1,0 +1,7 @@
+[project]
+name = "python-toolbox"
+version = "0.1.0"
+description = "A collection of small, useful tools written in Python."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []

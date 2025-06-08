@@ -42,18 +42,9 @@ Run any tool directly with Python, for example:
 
 ```bash
 python cidr_calculator.py
-```
-
-or
-
-```bash
 python get_ip.py
-```
-
-or
-
-```bash
 python get_pdf_meta.py -F your_file.pdf
+python conn-ports-scan.py -H <targetHost> -p <targetPort>
 ```
 
 

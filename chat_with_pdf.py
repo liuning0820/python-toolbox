@@ -11,13 +11,19 @@ from langchain_chroma import Chroma
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_ollama import OllamaLLM, OllamaEmbeddings
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 FILES_DIR = 'files'
 VECTOR_DIR = 'vectors'
 
-OLLAMA_LLM_BASE_URL = 'http://localhost:11434'
-OLLAMA_EMBEDDING_BASE_URL = 'http://localhost:11434'
-OLLAMA_LLM_MODEL = "gemma3:1b"
+OLLAMA_LLM_MODEL = "qwen3:32b"
 OLLAMA_EMBEDDING_MODEL = 'bge-m3:latest'
+
+# override with environment variables if set
+OLLAMA_LLM_BASE_URL = os.getenv('OLLAMA_LLM_BASE_URL', "http://localhost:11434")
+OLLAMA_EMBEDDING_BASE_URL = os.getenv('OLLAMA_EMBEDDING_BASE_URL', "http://localhost:11434")
 
 
 def ensure_dirs():

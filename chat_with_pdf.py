@@ -12,7 +12,13 @@ from langchain_community.document_loaders import PyPDFLoader
 from langchain_ollama import OllamaLLM, OllamaEmbeddings
 
 FILES_DIR = 'files'
-VECTOR_DIR = 'jj'
+VECTOR_DIR = 'vectors'
+
+OLLAMA_LLM_BASE_URL = 'http://localhost:11434'
+OLLAMA_EMBEDDING_BASE_URL = 'http://localhost:11434'
+OLLAMA_LLM_MODEL = "gemma3:1b"
+OLLAMA_EMBEDDING_MODEL = 'bge-m3:latest'
+
 
 def ensure_dirs():
     os.makedirs(FILES_DIR, exist_ok=True)
@@ -31,23 +37,25 @@ def init_session_state():
             template=st.session_state.template,
         )
     if 'memory' not in st.session_state:
-        st.session_state.memory = ConversationBufferMemory(
+        memory = ConversationBufferMemory(
             memory_key="history",
             return_messages=True,
             input_key="question"
         )
+
+        st.session_state.memory = memory
     if 'vectorstore' not in st.session_state:
         st.session_state.vectorstore = Chroma(
             persist_directory=VECTOR_DIR,
             embedding_function=OllamaEmbeddings(
-                base_url='http://localhost:11434',
-                model="bge-m3:latest"
+                base_url=OLLAMA_EMBEDDING_BASE_URL,
+                model=OLLAMA_EMBEDDING_MODEL
             )
         )
     if 'llm' not in st.session_state:
         st.session_state.llm = OllamaLLM(
-            base_url="http://localhost:11434",
-            model="gemma3:1b",
+            base_url=OLLAMA_LLM_BASE_URL,
+            model=OLLAMA_LLM_MODEL,
             verbose=True,
             callbacks=[StreamingStdOutCallbackHandler()]
         )
@@ -55,13 +63,19 @@ def init_session_state():
         st.session_state.chat_history = []
 
 def save_pdf(uploaded_file):
-    file_path = os.path.join(FILES_DIR, uploaded_file.name + ".pdf")
+    filename = uploaded_file.name
+    if not filename.lower().endswith('.pdf'):
+        filename += '.pdf'
+    file_path = os.path.join(FILES_DIR, filename)
     if not os.path.isfile(file_path):
         with open(file_path, "wb") as f:
             f.write(uploaded_file.read())
     return file_path
 
 def process_pdf(file_path):
+    """
+    增量式向量化PDF内容，避免重复向量化。
+    """
     loader = PyPDFLoader(file_path)
     data = loader.load()
     text_splitter = RecursiveCharacterTextSplitter(
@@ -70,10 +84,21 @@ def process_pdf(file_path):
         length_function=len
     )
     all_splits = text_splitter.split_documents(data)
-    st.session_state.vectorstore = Chroma.from_documents(
-        documents=all_splits,
-        embedding=OllamaEmbeddings(model="bge-m3:latest")
+    # 加载现有向量库或新建
+    vectorstore = Chroma(
+        persist_directory=VECTOR_DIR,
+        embedding_function=OllamaEmbeddings(
+            base_url=OLLAMA_EMBEDDING_BASE_URL,
+            model=OLLAMA_EMBEDDING_MODEL
+        )
     )
+    # 修正：遍历 metadatas 判断是否已向量化该文件
+    metadatas = vectorstore.get().get('metadatas', [])
+    sources = [meta.get('source', '') for meta in metadatas if isinstance(meta, dict)]
+    if file_path not in sources:
+        vectorstore.add_documents(all_splits)
+
+    st.session_state.vectorstore = vectorstore
 
 def get_qa_chain():
     if 'qa_chain' not in st.session_state:
@@ -98,15 +123,18 @@ def display_chat_history():
 def main():
     ensure_dirs()
     init_session_state()
-    st.title("PDF Chatbot")
+    st.title("PDF Chatbot (向量增强检索)")
     uploaded_file = st.file_uploader("Upload your PDF", type='pdf')
     display_chat_history()
 
     if uploaded_file is not None:
         file_path = save_pdf(uploaded_file)
-        if not os.path.isfile(os.path.join(VECTOR_DIR, "index")):  # 简单判断是否已向量化
-            with st.status("Analyzing your document..."):
+        try:
+            with st.status("Analyzing your document and updating vector store..."):
                 process_pdf(file_path)
+        except Exception as e:
+            st.error(f"向量化失败: {e}")
+            return
         qa_chain = get_qa_chain()
         if user_input := st.chat_input("You:", key="user_input"):
             user_message = {"role": "user", "message": user_input}

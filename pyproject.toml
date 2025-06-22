@@ -5,6 +5,7 @@ description = "A collection of small, useful tools written in Python."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "beautifulsoup4>=4.13.4",
     "chromadb>=1.0.13",
     "langchain>=0.3.26",
     "langchain-chroma>=0.2.4",

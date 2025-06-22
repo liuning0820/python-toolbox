@@ -2,6 +2,7 @@ import os
 import time
 
 import streamlit as st
+from langchain.callbacks.base import BaseCallbackHandler
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 from langchain.chains import RetrievalQA
 from langchain.memory import ConversationBufferMemory
@@ -126,6 +127,15 @@ def display_chat_history():
         with st.chat_message(message["role"]):
             st.markdown(message["message"])
 
+class StreamlitCallbackHandler(BaseCallbackHandler):
+    def __init__(self, message_placeholder):
+        self.message_placeholder = message_placeholder
+        self.tokens = ""
+
+    def on_llm_new_token(self, token: str, **kwargs):
+        self.tokens += token
+        self.message_placeholder.markdown(self.tokens + "▌")
+
 def main():
     ensure_dirs()
     init_session_state()
@@ -149,15 +159,31 @@ def main():
                 st.markdown(user_input)
             with st.chat_message("assistant"):
                 with st.spinner("Assistant is typing..."):
+                    message_placeholder = st.empty()
+                    stream_handler = StreamlitCallbackHandler(message_placeholder)
+                    # 重新实例化 LLM，传入自定义 handler
+                    llm = OllamaLLM(
+                        base_url=OLLAMA_LLM_BASE_URL,
+                        model=OLLAMA_LLM_MODEL,
+                        verbose=True,
+                        callbacks=[stream_handler]
+                    )
+                    # 重新实例化 qa_chain，传入新的 llm
+                    qa_chain = RetrievalQA.from_chain_type(
+                        llm=llm,
+                        chain_type='stuff',
+                        retriever=st.session_state.vectorstore.as_retriever(),
+                        verbose=True,
+                        chain_type_kwargs={
+                            "verbose": True,
+                            "prompt": st.session_state.prompt,
+                            "memory": st.session_state.memory,
+                        }
+                    )
                     response = qa_chain(user_input)
-                message_placeholder = st.empty()
-                full_response = ""
-                for chunk in response['result'].split():
-                    full_response += chunk + " "
-                    time.sleep(0.05)
-                    message_placeholder.markdown(full_response + "▌")
-                message_placeholder.markdown(full_response)
-            chatbot_message = {"role": "assistant", "message": response['result']}
+                    # 最终输出
+                    message_placeholder.markdown(stream_handler.tokens)
+            chatbot_message = {"role": "assistant", "message": stream_handler.tokens}
             st.session_state.chat_history.append(chatbot_message)
     else:
         st.write("Please upload a PDF file.")

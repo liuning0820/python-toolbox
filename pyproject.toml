@@ -5,7 +5,12 @@ description = "A collection of small, useful tools written in Python."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "chromadb>=1.0.13",
+    "langchain>=0.3.26",
+    "langchain-chroma>=0.2.4",
+    "langchain-ollama>=0.3.3",
     "pypdf>=5.6.0",
+    "streamlit>=1.46.0",
 ]
 
 [[tool.uv.index]]

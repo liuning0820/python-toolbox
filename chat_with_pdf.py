@@ -19,8 +19,8 @@ load_dotenv()
 FILES_DIR = 'files'
 VECTOR_DIR = 'vectors'
 
-OLLAMA_LLM_MODEL = "qwen3:32b"
-OLLAMA_EMBEDDING_MODEL = 'bge-m3:latest'
+OLLAMA_LLM_MODEL=os.getenv("OLLAMA_LLM_MODEL", "qwen3:32b")
+OLLAMA_EMBEDDING_MODEL=os.getenv("OLLAMA_EMBEDDING_MODEL", "bge-m3:latest")
 
 # override with environment variables if set
 OLLAMA_LLM_BASE_URL = os.getenv('OLLAMA_LLM_BASE_URL', "http://localhost:11434")

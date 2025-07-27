@@ -46,7 +46,8 @@ python cidr_calculator.py
 python get_ip.py
 python get_pdf_meta.py -F your_file.pdf
 python conn-ports-scan.py -H <targetHost> -p <targetPort>
-streamlit run chat_with_pdf.py
+streamlit run ollama_chat_with_pdf.py
+streamlit run ollama_url_summarizer.py
 ```
 
 ---

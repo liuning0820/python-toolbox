@@ -12,4 +12,5 @@ wheels/
 /uv.lock
 /files/
 /vectors/
+/web_vectors/
 .env

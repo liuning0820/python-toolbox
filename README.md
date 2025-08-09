@@ -89,7 +89,7 @@ You can summarize the content of any web page using a local Ollama LLM with the 
 Start the Streamlit app with:
 
 ```bash
-streamlit run streamlit_ollama_url_summarizer.py
+streamlit run ollama_url_summarizer.py
 ```
 
 - Paste the URL of the web page you want to summarize into the input box.

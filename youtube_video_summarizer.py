@@ -7,6 +7,7 @@ import torch
 import whisper
 import hashlib
 from dotenv import load_dotenv
+from openai import OpenAI
 
 
 # Load environment variables from .env
@@ -17,8 +18,10 @@ BASE_CACHE_DIR = ".cache"
 
 FPS = 0.5  # Extract 1 frame every 2 seconds
 
-# OLLAMA_LLM_MODEL=os.getenv("OLLAMA_LLM_MODEL", "qwen3:32b")
-OLLAMA_LLM_MODEL='gemma3:1b'
+OLLAMA_LLM_MODEL=os.getenv("OLLAMA_LLM_MODEL", "qwen3:32b")
+OLLAMA_LLM_BASE_URL = os.getenv("OLLAMA_LLM_BASE_URL", "http://localhost:11434") + '/v1'
+# OLLAMA_LLM_MODEL='gemma3:1b'
+# OLLAMA_LLM_BASE_URL='http://localhost:11434/v1'
 
 # ---------- HELPERS ----------
 @st.cache_data
@@ -99,8 +102,14 @@ Here is the transcript of the video:
 {transcript}
 
 """
-    result = subprocess.run(["ollama", "run", OLLAMA_LLM_MODEL], input=prompt.encode("utf-8"), stdout=subprocess.PIPE)
-    return result.stdout.decode("utf-8")
+    client = OpenAI(api_key='ollama', base_url=OLLAMA_LLM_BASE_URL)  # Adjust base_url if needed
+    response = client.chat.completions.create(
+        model=OLLAMA_LLM_MODEL,  # You can change to your preferred model
+        messages=[
+            {"role": "user", "content": prompt}
+        ]
+    )
+    return response.choices[0].message.content
 
 # ---------- UI ----------
 st.set_page_config(page_title="Video Summarizer", layout="centered")
@@ -147,4 +156,4 @@ if st.button("Start"):
 
 # The core functionality of the script, which is to download a YouTube video, 
 # extract frames, generate captions for those frames using the BLIP model, 
-# and then summarize the content using Ollama. 
+# and then summarize the content using Ollama.

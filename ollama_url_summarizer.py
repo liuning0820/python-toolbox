@@ -14,11 +14,13 @@ import json
 
 # Load environment variables from .env
 load_dotenv()
-OLLAMA_LLM_MODEL=os.getenv("OLLAMA_LLM_MODEL", "qwen3:32b")
-OLLAMA_EMBEDDING_MODEL=os.getenv("OLLAMA_EMBEDDING_MODEL", "bge-m3:latest")
+OLLAMA_LLM_MODEL = os.getenv("OLLAMA_LLM_MODEL", "qwen3:32b")
+OLLAMA_EMBEDDING_MODEL = os.getenv("OLLAMA_EMBEDDING_MODEL", "bge-m3:latest")
 OLLAMA_LLM_BASE_URL = os.getenv("OLLAMA_LLM_BASE_URL", "http://localhost:11434")
-OLLAMA_EMBEDDING_BASE_URL = os.getenv('OLLAMA_EMBEDDING_BASE_URL', "http://localhost:11434")
-VECTOR_DIR = 'web_vectors'
+OLLAMA_EMBEDDING_BASE_URL = os.getenv(
+    "OLLAMA_EMBEDDING_BASE_URL", "http://localhost:11434"
+)
+VECTOR_DIR = "web_vectors"
 
 # Ensure the vector directory exists
 os.makedirs(VECTOR_DIR, exist_ok=True)
@@ -41,31 +43,38 @@ class StreamlitCallbackHandler(BaseCallbackHandler):
 
 def init_session_state():
     """Initializes the session state variables."""
-    if 'chat_history' not in st.session_state:
+    if "chat_history" not in st.session_state:
         st.session_state.chat_history = []
-    if 'processed_url' not in st.session_state:
+    if "processed_url" not in st.session_state:
         st.session_state.processed_url = None
-    if 'template' not in st.session_state:
+    if "template" not in st.session_state:
         st.session_state.template = (
             "You are a knowledgeable chatbot. Use the following context from a web page to answer the user's question. "
             "Your tone should be professional and informative.\n\n"
             "Context: {context}\nHistory: {history}\n\nUser: {question}\nChatbot:"
         )
-    if 'prompt' not in st.session_state:
+    if "prompt" not in st.session_state:
         st.session_state.prompt = PromptTemplate(
             input_variables=["history", "context", "question"],
             template=st.session_state.template,
         )
-    if 'memory' not in st.session_state:
+    if "memory" not in st.session_state:
         st.session_state.memory = ConversationBufferMemory(
             memory_key="history", return_messages=True, input_key="question"
         )
-    if 'suggestion_id' not in st.session_state:
+    if "suggestion_id" not in st.session_state:
         st.session_state.suggestion_id = 0
+
 
 def generate_follow_up():
     # Generate follow-up questions
-    formatted_history = "\n".join([f"{msg['role'].upper()}: {msg['message']}" for msg in st.session_state.chat_history if 'message' in msg])
+    formatted_history = "\n".join(
+        [
+            f"{msg['role'].upper()}: {msg['message']}"
+            for msg in st.session_state.chat_history
+            if "message" in msg
+        ]
+    )
 
     task_prompt = f"""### Task:
 Suggest 3-5 relevant follow-up questions or prompts that the user might naturally ask next in this conversation as a **user**, based on the chat history, to help continue or deepen the discussion.
@@ -88,11 +97,11 @@ Suggest 3-5 relevant follow-up questions or prompts that the user might naturall
 
     print(task_prompt)
 
-    follow_up_llm = ChatOllama(model=OLLAMA_LLM_MODEL, base_url=OLLAMA_LLM_BASE_URL, format="json")
+    follow_up_llm = ChatOllama(
+        model=OLLAMA_LLM_MODEL, base_url=OLLAMA_LLM_BASE_URL, format="json"
+    )
 
-    messages = [
-        {"role": "user", "content": task_prompt}
-    ]
+    messages = [{"role": "user", "content": task_prompt}]
 
     follow_up_response = follow_up_llm.invoke(messages).content
 
@@ -106,12 +115,21 @@ Suggest 3-5 relevant follow-up questions or prompts that the user might naturall
                 if st.button(q, key=f"suggest_{sugg_id}_{i}"):
                     st.session_state.fill_chat_input = q
                     st.rerun()
-        st.session_state.chat_history.append({"role": "assistant", "type": "suggestions", "id": sugg_id, "follow_ups": follow_ups})
+        st.session_state.chat_history.append(
+            {
+                "role": "assistant",
+                "type": "suggestions",
+                "id": sugg_id,
+                "follow_ups": follow_ups,
+            }
+        )
     except Exception as e:
         follow_up_message = f"Could not generate follow-up questions. Error: {str(e)}\nRaw response: {follow_up_response}"
         with st.chat_message("assistant"):
             st.markdown(follow_up_message)
-        st.session_state.chat_history.append({"role": "assistant", "message": follow_up_message})
+        st.session_state.chat_history.append(
+            {"role": "assistant", "message": follow_up_message}
+        )
 
 
 def fetch_webpage_text(url):
@@ -138,23 +156,33 @@ def setup_chat_environment(url, text_content):
 
         # 2. Create vector store
         st.write("Creating vector store...")
-        embedding_function = OllamaEmbeddings(model=OLLAMA_EMBEDDING_MODEL, base_url=OLLAMA_EMBEDDING_BASE_URL)
+        embedding_function = OllamaEmbeddings(
+            model=OLLAMA_EMBEDDING_MODEL, base_url=OLLAMA_EMBEDDING_BASE_URL
+        )
         vectorstore = Chroma.from_texts(
             texts=splits,
             embedding=embedding_function,
-            persist_directory=f"{VECTOR_DIR}/{os.path.basename(url)}"
+            persist_directory=f"{VECTOR_DIR}/{os.path.basename(url)}",
         )
         st.session_state.vectorstore = vectorstore
 
         # 3. Generate initial summary
         st.write("Generating initial summary...")
-        summary_prompt = PromptTemplate.from_template("Summarize the following content:\n\n{content}")
+        summary_prompt = PromptTemplate.from_template(
+            "Summarize the following content:\n\n{content}"
+        )
         llm = OllamaLLM(model=OLLAMA_LLM_MODEL, base_url=OLLAMA_LLM_BASE_URL)
         chain = summary_prompt | llm
-        summary = chain.invoke({"content": text_content[:4000]})  # Summarize first 4000 chars
+        summary = chain.invoke(
+            {"content": text_content[:4000]}
+        )  # Summarize first 4000 chars
 
-        st.session_state.chat_history.append({"role": "assistant",
-                                              "message": f"I have summarized the content from the URL. Here is a brief overview:\n\n{summary}\n\nYou can now ask me questions about it."})
+        st.session_state.chat_history.append(
+            {
+                "role": "assistant",
+                "message": f"I have summarized the content from the URL. Here is a brief overview:\n\n{summary}\n\nYou can now ask me questions about it.",
+            }
+        )
         st.session_state.processed_url = url
 
 
@@ -162,7 +190,9 @@ st.title("Web Page Summarizer and Chatbot")
 
 init_session_state()
 
-url = st.text_input("Paste the URL of the web page you want to analyze:", key="url_input")
+url = st.text_input(
+    "Paste the URL of the web page you want to analyze:", key="url_input"
+)
 
 if url and url != st.session_state.processed_url:
     if st.button("Analyze and Start Chat"):
@@ -191,7 +221,9 @@ for message in st.session_state.chat_history:
 # Handle chat input if a URL has been processed
 if st.session_state.processed_url:
 
-    if user_input := st.chat_input("Ask a question about the web page:", key="user_chat_input"):
+    if user_input := st.chat_input(
+        "Ask a question about the web page:", key="user_chat_input"
+    ):
         st.session_state.chat_history.append({"role": "user", "message": user_input})
         with st.chat_message("user"):
             st.markdown(user_input)
@@ -204,27 +236,29 @@ if st.session_state.processed_url:
             llm = OllamaLLM(
                 model=OLLAMA_LLM_MODEL,
                 base_url=OLLAMA_LLM_BASE_URL,
-                callbacks=[stream_handler]
+                callbacks=[stream_handler],
             )
 
             # Create QA chain
             qa_chain = RetrievalQA.from_chain_type(
                 llm=llm,
-                chain_type='stuff',
+                chain_type="stuff",
                 retriever=st.session_state.vectorstore.as_retriever(),
                 chain_type_kwargs={
                     "prompt": st.session_state.prompt,
                     "memory": st.session_state.memory,
-                }
+                },
             )
 
             qa_chain.invoke(user_input)
             response_message = stream_handler.tokens
 
-        st.session_state.chat_history.append({"role": "assistant", "message": response_message})
+        st.session_state.chat_history.append(
+            {"role": "assistant", "message": response_message}
+        )
         generate_follow_up()
 
-if 'fill_chat_input' in st.session_state and st.session_state.fill_chat_input:
+if "fill_chat_input" in st.session_state and st.session_state.fill_chat_input:
     value = st.session_state.fill_chat_input
     js_code = f"""
     <script>
@@ -254,11 +288,3 @@ if 'fill_chat_input' in st.session_state and st.session_state.fill_chat_input:
     """
     st.components.v1.html(js_code, height=0)
     del st.session_state.fill_chat_input
-
-
-
-
-
-
-
-

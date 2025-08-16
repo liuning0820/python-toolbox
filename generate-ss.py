@@ -8,7 +8,7 @@ load_dotenv()
 
 # SPEEDCAT_URL is expected to be set in the .env file
 # 登录SPEEDCAT，复制 V2Ray 订阅链接,各软件通用，全SS协议
-ss_url=os.getenv("SPEEDCAT_URL") 
+ss_url = os.getenv("SPEEDCAT_URL")
 
 # Fetch the encoded string from the URL
 try:

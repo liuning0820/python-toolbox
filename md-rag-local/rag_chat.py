@@ -8,7 +8,7 @@ client = chromadb.PersistentClient(path=DB_DIR)
 collection = client.get_collection("notes")
 
 MODES = {
-    "1": "总结模式",
+    "1": "总结模式（带思考问题）",
     "2": "提问模式",
     "3": "洞察模式"
 }
@@ -43,6 +43,12 @@ def rag_query(query: str, mode: str):
     prompt = build_prompt(mode, context, query)
 
     response = chat(model="qwen2.5-coder:1.5b", messages=[{"role": "user", "content": prompt}])
+    return response["message"]["content"], context
+
+def generate_thinking_questions(summary: str):
+    prompt = f"""基于以下总结内容，生成 3 个中文思考问题，引导深入理解和应用：
+{summary}"""
+    response = chat(model="qwen2.5-coder:1.5b", messages=[{"role": "user", "content": prompt}])
     return response["message"]["content"]
 
 if __name__ == "__main__":
@@ -55,4 +61,12 @@ if __name__ == "__main__":
         q = input("\n❓ 问题: ")
         if q.strip().lower() in ["exit", "quit"]:
             break
-        print("\n💡 回答:\n", rag_query(q, mode))
+
+        answer, context = rag_query(q, mode)
+        print("\n💡 回答:\n", answer)
+
+        # 在总结模式下触发「多轮交互」
+        if mode == "1":
+            follow = input("\n👉 要不要我基于总结生成 3 个思考问题？(y/n): ").strip().lower()
+            if follow == "y":
+                print("\n🧠 思考问题:\n", generate_thinking_questions(answer))

@@ -15,3 +15,5 @@ wheels/
 /web_vectors/
 .env
 .cache/
+md-rag-local/rag_vectors_db/
+md-rag-local/notes

@@ -77,7 +77,7 @@ def generate_follow_up():
     )
 
     task_prompt = f"""### Task:
-Suggest 3-5 relevant follow-up questions or prompts that the user might naturally ask next in this conversation as a **user**, based on the chat history, to help continue or deepen the discussion.
+Suggest 3-5 relevant follow-up questions or prompts in Chinese that the user might naturally ask next in this conversation as a **user**, based on the chat history, to help continue or deepen the discussion.
 ### Guidelines:
 - Write all follow-up questions from the user’s point of view, directed to the assistant.
 - Make questions concise, clear, and directly related to the discussed topic(s).
@@ -169,7 +169,7 @@ def setup_chat_environment(url, text_content):
         # 3. Generate initial summary
         st.write("Generating initial summary...")
         summary_prompt = PromptTemplate.from_template(
-            "Summarize the following content:\n\n{content}"
+            "请用中文总结以下内容：\n\n{content}"
         )
         llm = OllamaLLM(model=OLLAMA_LLM_MODEL, base_url=OLLAMA_LLM_BASE_URL)
         chain = summary_prompt | llm

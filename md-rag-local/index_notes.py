@@ -3,9 +3,12 @@ import os
 import chromadb
 from markdown_it import MarkdownIt
 from ollama import embed
+from dotenv import load_dotenv
+
+load_dotenv()
 
 NOTES_DIR = "notes"
-DB_DIR = "rag_vectors_db"
+DB_DIR = os.environ.get("DB_DIR", "rag_vectors_db")
 
 md = MarkdownIt()
 

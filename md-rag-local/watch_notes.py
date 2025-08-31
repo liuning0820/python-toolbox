@@ -6,9 +6,12 @@ from markdown_it import MarkdownIt
 from ollama import embed
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
+from dotenv import load_dotenv
+
+load_dotenv()
 
 NOTES_DIR = "notes"
-DB_DIR = "rag_vectors_db"
+DB_DIR = os.environ.get("DB_DIR", "rag_vectors_db")
 
 md = MarkdownIt()
 client = chromadb.PersistentClient(path=DB_DIR)

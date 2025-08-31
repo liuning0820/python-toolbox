@@ -1,0 +1,122 @@
+# rag_app.py
+import streamlit as st
+import chromadb
+from ollama import embed, chat
+from pathlib import Path
+
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+DB_DIR = os.environ.get("DB_DIR", "rag_vectors_db")
+MODEL_NAME = os.environ.get("MODEL_NAME", "qwen2.5-coder:1.5b")
+
+
+client = chromadb.PersistentClient(path=DB_DIR)
+
+# 如果没有 collection，就创建
+try:
+    collection = client.get_collection("notes")
+except:
+    collection = client.create_collection("notes")
+
+MODES = {
+    "总结模式（带思考问题）": "1",
+    "提问模式": "2",
+    "洞察模式（带行动步骤）": "3"
+}
+
+# ----------------- 工具函数 -----------------
+def build_prompt(mode: str, context: str, query: str) -> str:
+    if mode == "1":
+        return f"""你是一个学习助手。以下是我的笔记片段：
+{context}
+
+请帮我用中文总结这些内容，提炼出关键点。"""
+    elif mode == "2":
+        return f"""你是一个本地知识助手。以下是我的笔记片段：
+{context}
+
+基于这些内容，回答我的问题：{query}"""
+    elif mode == "3":
+        return f"""你是一个洞察助手。以下是我的笔记片段：
+{context}
+
+请帮我提炼关键见解，指出潜在联系，给出新的思考方向。"""
+    else:
+        return f"以下是我的笔记片段：\n{context}\n\n基于这些内容，回答问题：{query}"
+
+def rag_query(query: str, mode: str):
+    query_emb = embed(model="bge-m3", input=query).embeddings[0]
+    results = collection.query(query_embeddings=[query_emb], n_results=3)
+    context = "\n\n".join(results["documents"][0]) if results["documents"] else "（没有找到相关内容）"
+    prompt = build_prompt(mode, context, query)
+    response = chat(model=MODEL_NAME, messages=[{"role": "user", "content": prompt}])
+    return response["message"]["content"], context
+
+def generate_thinking_questions(summary: str):
+    prompt = f"""基于以下总结内容，生成 3 个中文思考问题，引导深入理解和应用：
+{summary}"""
+    response = chat(model=MODEL_NAME, messages=[{"role": "user", "content": prompt}])
+    return response["message"]["content"]
+
+def generate_action_items(insights: str):
+    prompt = f"""基于以下洞察内容，提出 3-5 个可执行的行动步骤（action items），帮助落实和应用这些洞察：
+{insights}"""
+    response = chat(model=MODEL_NAME, messages=[{"role": "user", "content": prompt}])
+    return response["message"]["content"]
+
+def add_markdown_to_collection(file, filename: str):
+    """读取 markdown 文件，按段落切分，存入 Chroma"""
+    text = file.read().decode("utf-8")
+    chunks = text.split("\n\n")
+    for i, chunk in enumerate(chunks):
+        if chunk.strip():
+            emb = embed(model="bge-m3", input=chunk).embeddings[0]
+            collection.add(
+                documents=[chunk],
+                embeddings=[emb],
+                ids=[f"{filename}_{i}"]
+            )
+
+# ----------------- Streamlit UI -----------------
+st.set_page_config(page_title="RAG Chat", page_icon="📚")
+
+st.title("📚 本地 RAG 学习助手")
+
+# ---- 文件上传区 ----
+st.sidebar.header("📂 上传 Markdown 笔记")
+uploaded_files = st.sidebar.file_uploader("选择 .md 文件", type=["md"], accept_multiple_files=True)
+
+if uploaded_files:
+    for f in uploaded_files:
+        add_markdown_to_collection(f, f.name)
+    st.sidebar.success(f"✅ 已添加 {len(uploaded_files)} 个笔记到数据库")
+
+# ---- 模式选择 ----
+mode_label = st.radio("选择模式", list(MODES.keys()))
+mode = MODES[mode_label]
+
+query = st.text_area("输入你的问题或需求", "")
+
+if st.button("运行 RAG"):
+    if query.strip():
+        answer, context = rag_query(query, mode)
+        st.subheader("💡 回答")
+        st.write(answer)
+
+        st.subheader("📑 参考内容")
+        st.write(context)
+
+        # 多轮扩展
+        if mode == "1":
+            if st.button("🧠 生成思考问题"):
+                st.subheader("🧠 思考问题")
+                st.write(generate_thinking_questions(answer))
+
+        if mode == "3":
+            if st.button("🚀 生成行动步骤"):
+                st.subheader("🚀 行动步骤")
+                st.write(generate_action_items(answer))
+    else:
+        st.warning("请输入问题！")

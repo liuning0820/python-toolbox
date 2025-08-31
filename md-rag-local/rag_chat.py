@@ -1,8 +1,14 @@
+
 # rag_chat.py
 import chromadb
 from ollama import embed, chat
+import os
+from dotenv import load_dotenv
 
-DB_DIR = "rag_vectors_db"
+
+load_dotenv()
+DB_DIR = os.environ.get("DB_DIR", "rag_vectors_db")
+MODEL_NAME = os.environ.get("MODEL_NAME", "qwen2.5-coder:1.5b")
 
 client = chromadb.PersistentClient(path=DB_DIR)
 collection = client.get_collection("notes")
@@ -42,14 +48,21 @@ def rag_query(query: str, mode: str):
     context = "\n\n".join(results["documents"][0])
     prompt = build_prompt(mode, context, query)
 
-    response = chat(model="qwen2.5-coder:1.5b", messages=[{"role": "user", "content": prompt}])
+    response = chat(model=MODEL_NAME, messages=[{"role": "user", "content": prompt}])
     return response["message"]["content"], context
 
 def generate_thinking_questions(summary: str):
     prompt = f"""基于以下总结内容，生成 3 个中文思考问题，引导深入理解和应用：
 {summary}"""
-    response = chat(model="qwen2.5-coder:1.5b", messages=[{"role": "user", "content": prompt}])
+    response = chat(model=MODEL_NAME, messages=[{"role": "user", "content": prompt}])
     return response["message"]["content"]
+
+def generate_action_items(insights: str):
+    prompt = f"""基于以下洞察内容，提出 3-5 个可执行的行动步骤（action items），帮助落实和应用这些洞察：
+{insights}"""
+    response = chat(model=MODEL_NAME, messages=[{"role": "user", "content": prompt}])
+    return response["message"]["content"]
+
 
 if __name__ == "__main__":
     print("请选择模式：")
@@ -65,8 +78,14 @@ if __name__ == "__main__":
         answer, context = rag_query(q, mode)
         print("\n💡 回答:\n", answer)
 
-        # 在总结模式下触发「多轮交互」
+        # --- 总结模式的多轮 ---
         if mode == "1":
             follow = input("\n👉 要不要我基于总结生成 3 个思考问题？(y/n): ").strip().lower()
             if follow == "y":
                 print("\n🧠 思考问题:\n", generate_thinking_questions(answer))
+
+        # --- 洞察模式的多轮 ---
+        if mode == "3":
+            follow = input("\n👉 要不要我基于洞察生成可执行的行动步骤？(y/n): ").strip().lower()
+            if follow == "y":
+                print("\n🚀 行动步骤:\n", generate_action_items(answer))

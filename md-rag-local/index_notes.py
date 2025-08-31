@@ -1,13 +1,19 @@
 # index_notes.py
+
 import os
 import chromadb
 from markdown_it import MarkdownIt
 from ollama import embed
 from dotenv import load_dotenv
+import sys
 
 load_dotenv()
 
-NOTES_DIR = "notes"
+# NOTES_DIR 优先级：命令行参数 > 环境变量 > 默认值
+if len(sys.argv) > 1:
+    NOTES_DIR = sys.argv[1]
+else:
+    NOTES_DIR = os.environ.get("NOTES_DIR", "notes")
 DB_DIR = os.environ.get("DB_DIR", "rag_vectors_db")
 
 md = MarkdownIt()

@@ -10,7 +10,13 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-NOTES_DIR = "notes"
+import sys
+
+# NOTES_DIR 优先级：命令行参数 > 环境变量 > 默认值
+if len(sys.argv) > 1:
+    NOTES_DIR = sys.argv[1]
+else:
+    NOTES_DIR = os.environ.get("NOTES_DIR", "notes")
 DB_DIR = os.environ.get("DB_DIR", "rag_vectors_db")
 
 md = MarkdownIt()
@@ -56,7 +62,7 @@ class NotesHandler(FileSystemEventHandler):
             index_file(event.src_path)
 
 if __name__ == "__main__":
-    print("👀 正在监听 notes/ 目录的变动...")
+    print(f"👀 正在监听 {NOTES_DIR}/ 目录的变动...")
     observer = Observer()
     observer.schedule(NotesHandler(), NOTES_DIR, recursive=True)
     observer.start()

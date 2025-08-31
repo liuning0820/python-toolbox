@@ -7,9 +7,11 @@ from pathlib import Path
 from dotenv import load_dotenv
 import os
 
+
 load_dotenv()
 DB_DIR = os.environ.get("DB_DIR", "rag_vectors_db")
-MODEL_NAME = os.environ.get("MODEL_NAME", "qwen2.5-coder:1.5b")
+MODEL_NAME = os.environ.get("MODEL_NAME", "gemma3:1b")
+EMBEDDING_MODEL = os.environ.get("OLLAMA_EMBEDDING_MODEL", "bge-m3")
 
 
 client = chromadb.PersistentClient(path=DB_DIR)
@@ -47,7 +49,7 @@ def build_prompt(mode: str, context: str, query: str) -> str:
         return f"以下是我的笔记片段：\n{context}\n\n基于这些内容，回答问题：{query}"
 
 def rag_query(query: str, mode: str):
-    query_emb = embed(model="bge-m3", input=query).embeddings[0]
+    query_emb = embed(model=EMBEDDING_MODEL, input=query).embeddings[0]
     results = collection.query(query_embeddings=[query_emb], n_results=3)
     context = "\n\n".join(results["documents"][0]) if results["documents"] else "（没有找到相关内容）"
     prompt = build_prompt(mode, context, query)
@@ -72,7 +74,7 @@ def add_markdown_to_collection(file, filename: str):
     chunks = text.split("\n\n")
     for i, chunk in enumerate(chunks):
         if chunk.strip():
-            emb = embed(model="bge-m3", input=chunk).embeddings[0]
+            emb = embed(model=EMBEDDING_MODEL, input=chunk).embeddings[0]
             collection.add(
                 documents=[chunk],
                 embeddings=[emb],

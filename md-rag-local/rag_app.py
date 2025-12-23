@@ -70,7 +70,7 @@ def generate_action_items(insights: str):
 
 def add_markdown_to_collection(file, filename: str):
     """读取 markdown 文件，按段落切分，存入 Chroma"""
-    text = file.read().decode("utf-8")
+    text = file.read().decode("utf-8", errors="replace")
     chunks = text.split("\n\n")
     for i, chunk in enumerate(chunks):
         if chunk.strip():
@@ -80,6 +80,13 @@ def add_markdown_to_collection(file, filename: str):
                 embeddings=[emb],
                 ids=[f"{filename}_{i}"]
             )
+
+
+def clear_database():
+    """清空当前数据库"""
+    global collection
+    client.delete_collection("notes")
+    collection = client.create_collection("notes")
 
 # ----------------- Streamlit UI -----------------
 st.set_page_config(page_title="RAG Chat", page_icon="📚")
@@ -95,30 +102,55 @@ if uploaded_files:
         add_markdown_to_collection(f, f.name)
     st.sidebar.success(f"✅ 已添加 {len(uploaded_files)} 个笔记到数据库")
 
+# 清空数据库按钮
+if st.sidebar.button("🗑️ 清空数据库"):
+    clear_database()
+    st.sidebar.warning("⚠️ 数据库已清空！")
+
 # ---- 模式选择 ----
 mode_label = st.radio("选择模式", list(MODES.keys()))
 mode = MODES[mode_label]
 
-query = st.text_area("输入你的问题或需求", "")
+query = st.text_area("输入你的问题（总结模式可留空）", "")
 
 if st.button("运行 RAG"):
-    if query.strip():
-        answer, context = rag_query(query, mode)
-        st.subheader("💡 回答")
-        st.write(answer)
+    if mode == "1":  # 总结模式
+        # 直接取所有文档
+        all_docs = collection.get()["documents"]
+        context = "\n\n".join(all_docs) if all_docs else "（没有找到笔记内容）"
+
+        prompt = f"""你是一个学习助手。以下是我的笔记片段：
+    {context}
+
+    请帮我用中文总结这些内容，提炼出关键点。"""
+        response = chat(model=MODEL_NAME, messages=[{"role": "user", "content": prompt}])
+        st.session_state["summary_answer"] = response["message"]["content"]  # ✅ 存入 session_state
+
+        st.subheader("📝 总结")
+        st.write(st.session_state["summary_answer"])
 
         st.subheader("📑 参考内容")
         st.write(context)
 
-        # 多轮扩展
-        if mode == "1":
-            if st.button("🧠 生成思考问题"):
-                st.subheader("🧠 思考问题")
-                st.write(generate_thinking_questions(answer))
+    # 单独的按钮，用之前存的结果
+    if mode == "1" and st.button("🧠 生成思考问题"):
+        if "summary_answer" in st.session_state:
+            st.subheader("🧠 思考问题")
+            st.write(generate_thinking_questions(st.session_state["summary_answer"]))
+        else:
+            st.warning("请先点击运行 RAG 生成总结！")
 
-        if mode == "3":
-            if st.button("🚀 生成行动步骤"):
-                st.subheader("🚀 行动步骤")
-                st.write(generate_action_items(answer))
-    else:
-        st.warning("请输入问题！")
+
+    else:  # 提问模式 / 洞察模式
+        if query.strip():
+            answer, context = rag_query(query, mode)
+            st.subheader("💡 回答")
+            st.write(answer)
+            st.subheader("📑 参考内容")
+            st.write(context)
+            if mode == "3":
+                if st.button("🚀 生成行动步骤"):
+                    st.subheader("🚀 行动步骤")
+                    st.write(generate_action_items(answer))
+        else:
+            st.warning("请输入问题！")

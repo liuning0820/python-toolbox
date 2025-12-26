@@ -75,7 +75,9 @@ def get_files_changed_last_week(workspace_path=None):
                 try:
                     # Parse the ISO date
                     # Remove timezone info if present (e.g., +0000)
-                    date_str = date_str.split('+')[0].split('-')[0].strip()
+                    date_str = date_str.split('+')[0].strip()
+                    # Convert space to T for ISO format
+                    date_str = date_str.replace(' ', 'T')
                     commit_date = datetime.fromisoformat(date_str)
                     current_commit_info = (commit_hash, author, commit_date)
                 except ValueError as e:
@@ -124,7 +126,7 @@ def format_file_list(file_changes):
         if len(file_path) > 60:
             file_path = "..." + file_path[-57:]
 
-        output.append("25")
+        output.append(f"{file_path:<60} {date_str}  {author:<15} {commit_hash[:7]}")
 
     output.append(f"\nTotal: {len(file_changes)} files changed")
 

@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 
 
 load_dotenv()
-DB_DIR = os.environ.get("DB_DIR", "rag_vectors_db")
+DB_DIR = os.environ.get("DB_DIR", "rag_vectors")
 MODEL_NAME = os.environ.get("MODEL_NAME", "qwen2.5-coder:1.5b")
 
 client = chromadb.PersistentClient(path=DB_DIR)

@@ -31,7 +31,7 @@ OLLAMA_LLM_BASE_URL = os.getenv("OLLAMA_LLM_BASE_URL", "http://localhost:11434")
 def download_youtube(url, video_file):
     if not os.path.exists(video_file):
         st.write("📥 Downloading video...")
-        subprocess.run(["yt-dlp", "-f", "mp4", "-o", video_file, url])
+        subprocess.run(["yt-dlp", "-f", "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]", "-o", video_file, url])
     else:
         st.write("🎥 Video already downloaded")
 
@@ -43,7 +43,7 @@ def load_whisper_model():
 
 @st.cache_resource
 def load_blip_model():
-    processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-base")
+    processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-base", use_fast=False)
     model = BlipForConditionalGeneration.from_pretrained(
         "Salesforce/blip-image-captioning-base"
     ).to(device)

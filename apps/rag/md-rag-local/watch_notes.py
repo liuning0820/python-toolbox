@@ -17,7 +17,7 @@ if len(sys.argv) > 1:
     NOTES_DIR = sys.argv[1]
 else:
     NOTES_DIR = os.environ.get("NOTES_DIR", "notes")
-DB_DIR = os.environ.get("DB_DIR", "rag_vectors_db")
+DB_DIR = os.environ.get("DB_DIR", "rag_vectors")
 
 md = MarkdownIt()
 client = chromadb.PersistentClient(path=DB_DIR)

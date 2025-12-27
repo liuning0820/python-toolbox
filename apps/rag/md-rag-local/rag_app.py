@@ -9,7 +9,7 @@ import os
 
 
 load_dotenv()
-DB_DIR = os.environ.get("DB_DIR", "rag_vectors_db")
+DB_DIR = os.environ.get("DB_DIR", "rag_vectors")
 MODEL_NAME = os.environ.get("MODEL_NAME", "gemma3:1b")
 EMBEDDING_MODEL = os.environ.get("OLLAMA_EMBEDDING_MODEL", "bge-m3")
 

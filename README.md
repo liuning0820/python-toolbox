@@ -15,6 +15,19 @@ A collection of small, useful tools written in Python.
 - Python 3.8+
 - [uv](https://github.com/astral-sh/uv) (install via `pip install uv`)
 
+**Note:** `uv pip install …` works inside the *currently active* Python environment. It **does not** automatically create a virtual environment for you. If your project folder does not already contain a venv, create one first:
+
+```sh
+uv venv .venv   # creates a .venv directory using the interpreter found in PATH
+# Or python -m venv .venv
+
+```sh
+
+.\.venv\Scripts\Activate.ps1   # activate it (PowerShell)
+```
+
+After activation, you can run `uv pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple` as documented.
+
 ### Generating requirements.txt
 
 You can generate or update `requirements.txt` with your current environment's dependencies using:
@@ -29,6 +42,8 @@ If you are in China, you can use the Tsinghua mirror for faster access:
 
 ```bash
 uv pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+
+uv pip install requests
 ```
 
 ### Example Tools

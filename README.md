@@ -12,7 +12,7 @@ A collection of small, useful tools written in Python.
 
 ### Prerequisites
 
-- Python 3.8+
+- Python 3.9+
 - [uv](https://github.com/astral-sh/uv) (install via `pip install uv`)
 
 **Note:** `uv pip install …` works inside the *currently active* Python environment. It **does not** automatically create a virtual environment for you. If your project folder does not already contain a venv, create one first:

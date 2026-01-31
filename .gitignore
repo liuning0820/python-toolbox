@@ -19,3 +19,6 @@ md-rag-local/notes
 */rag_vectors/*
 apps/rag/md-rag-local/rag_vectors/
 apps/rag/web_vectors/
+apps/rag/vectors/*
+apps/rag/files/*
+apps/rag/vectors/chroma.sqlite3
